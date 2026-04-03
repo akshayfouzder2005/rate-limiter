@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Rate Limiter Demo</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-950 text-white min-h-screen p-10 font-mono">
+
+  <div class="max-w-2xl mx-auto">
+    <h1 class="text-3xl font-bold mb-2"> Rate Limiter Demo</h1>
+    <p class="text-gray-400 mb-8">10 requests / 60 seconds. Try hitting the limit.</p>
+
+    <!-- Algorithm Selector -->
+    <div class="flex gap-3 mb-6">
+      <button onclick="setAlgo('fixed-window')"   id="btn-fixed-window"   class="algo-btn px-4 py-2 rounded bg-indigo-600 hover:bg-indigo-500">Fixed Window</button>
+      <button onclick="setAlgo('sliding-window')" id="btn-sliding-window" class="algo-btn px-4 py-2 rounded bg-gray-700 hover:bg-gray-600">Sliding Window</button>
+      <button onclick="setAlgo('token-bucket')"   id="btn-token-bucket"   class="algo-btn px-4 py-2 rounded bg-gray-700 hover:bg-gray-600">Token Bucket</button>
+    </div>
+
+    <!-- Fire Request Button -->
+    <button onclick="fireRequest()" class="w-full py-3 bg-green-600 hover:bg-green-500 rounded text-lg font-bold mb-6">
+      Fire Request →
+    </button>
+
+    <!-- Status Bar -->
+    <div id="status-bar" class="mb-4 h-4 rounded bg-gray-800 overflow-hidden">
+      <div id="status-fill" class="h-full bg-green-500 transition-all duration-300" style="width:0%"></div>
+    </div>
+    <p id="status-text" class="text-gray-400 text-sm mb-6">No requests yet.</p>
+
+    <!-- Response Log -->
+    <div id="log" class="space-y-2 max-h-80 overflow-y-auto"></div>
+  </div>
+
+  <script>
+    let algo = 'fixed-window';
+    let requestCount = 0;
+    const MAX = 10;
+
+    function setAlgo(name) {
+      algo = name;
+      requestCount = 0;
+      updateBar(0, true);
+      document.getElementById('log').innerHTML = '';
+      document.getElementById('status-text').textContent = 'Switched to ' + name;
+      document.querySelectorAll('.algo-btn').forEach(b => b.classList.replace('bg-indigo-600','bg-gray-700'));
+      document.getElementById('btn-' + name).classList.replace('bg-gray-700','bg-indigo-600');
+    }
+
+    async function fireRequest() {
+      const res = await fetch(`/api/${algo}`);
+      const data = await res.json();
+      const allowed = res.status !== 429;
+
+      if (allowed) requestCount = data.count || (requestCount + 1);
+      updateBar(requestCount, allowed);
+      appendLog(data, allowed, res.status);
+    }
+
+    function updateBar(count, allowed) {
+      const pct = Math.min((count / MAX) * 100, 100);
+      const fill = document.getElementById('status-fill');
+      fill.style.width = pct + '%';
+      fill.className = `h-full transition-all duration-300 ${allowed ? 'bg-green-500' : 'bg-red-500'}`;
+      document.getElementById('status-text').textContent =
+        allowed ? `${count}/${MAX} requests used` : `❌ Rate limit hit — retry after ${data?.retry_after || 60}s`;
+    }
+
+    function appendLog(data, allowed, status) {
+      const log = document.getElementById('log');
+      const entry = document.createElement('div');
+      entry.className = `p-3 rounded text-sm ${allowed ? 'bg-gray-800' : 'bg-red-900/40 border border-red-700'}`;
+      entry.innerHTML = `
+        <span class="${allowed ? 'text-green-400' : 'text-red-400'}">${status} ${allowed ? '✓ ALLOWED' : '✗ BLOCKED'}</span>
+        <span class="text-gray-400 ml-4">${JSON.stringify(data)}</span>
+      `;
+      log.prepend(entry);
+    }
+  </script>
+</body>
+</html>
