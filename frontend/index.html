@@ -1,324 +1,86 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Rate Limiter Demo</title>
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Syne:wght@700;800&display=swap" rel="stylesheet"/>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <style>
-    :root {
-      --green: #00ff87;
-      --red: #ff3b5c;
-      --yellow: #ffd166;
-      --bg: #0a0a0f;
-      --card: #12121a;
-      --border: #1e1e2e;
-    }
-    body { background: var(--bg); font-family: 'JetBrains Mono', monospace; }
-    h1 { font-family: 'Syne', sans-serif; }
-
-    .algo-btn {
-      border: 1px solid var(--border);
-      background: var(--card);
-      color: #666;
-      padding: 8px 16px;
-      border-radius: 6px;
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 12px;
-      cursor: pointer;
-      transition: all 0.15s;
-    }
-    .algo-btn.active {
-      border-color: var(--green);
-      color: var(--green);
-      box-shadow: 0 0 12px rgba(0,255,135,0.15);
-    }
-    .algo-btn:hover:not(.active) { border-color: #444; color: #aaa; }
-
-    #fire-btn {
-      width: 100%;
-      padding: 16px;
-      border-radius: 8px;
-      font-family: 'Syne', sans-serif;
-      font-size: 18px;
-      font-weight: 800;
-      letter-spacing: 1px;
-      cursor: pointer;
-      border: none;
-      transition: all 0.15s;
-      background: var(--green);
-      color: #000;
-    }
-    #fire-btn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 4px 20px rgba(0,255,135,0.3); }
-    #fire-btn:disabled { background: #1e1e2e; color: #444; cursor: not-allowed; transform: none; box-shadow: none; }
-    #fire-btn.locked { background: var(--red); color: #fff; }
-
-    .progress-track {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 4px;
-      height: 8px;
-      overflow: hidden;
-    }
-    #progress-fill {
-      height: 100%;
-      border-radius: 4px;
-      transition: width 0.3s ease, background 0.3s ease;
-      background: var(--green);
-    }
-
-    #timer-container {
-      background: rgba(255,59,92,0.08);
-      border: 1px solid rgba(255,59,92,0.3);
-      border-radius: 12px;
-      padding: 24px;
-      text-align: center;
-      display: none;
-    }
-    #timer-number {
-      font-family: 'Syne', sans-serif;
-      font-size: 72px;
-      font-weight: 800;
-      color: var(--red);
-      line-height: 1;
-      font-variant-numeric: tabular-nums;
-    }
-    .timer-track {
-      background: rgba(255,59,92,0.15);
-      border-radius: 4px;
-      height: 4px;
-      margin-top: 12px;
-      overflow: hidden;
-    }
-    #timer-fill {
-      height: 100%;
-      border-radius: 4px;
-      background: var(--red);
-      transition: width 1s linear;
-    }
-
-    .log-entry {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      padding: 10px 14px;
-      font-size: 11px;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      animation: slideIn 0.2s ease;
-    }
-    .log-entry.blocked { border-color: rgba(255,59,92,0.4); background: rgba(255,59,92,0.05); }
-    @keyframes slideIn { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
-
-    .badge {
-      font-size: 10px;
-      padding: 2px 8px;
-      border-radius: 4px;
-      font-weight: 700;
-      white-space: nowrap;
-    }
-    .badge.allowed { background: rgba(0,255,135,0.15); color: var(--green); }
-    .badge.blocked { background: rgba(255,59,92,0.15); color: var(--red); }
-
-    .stat-box {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 14px 16px;
-      text-align: center;
-    }
-    .stat-number { font-family: 'Syne', sans-serif; font-size: 28px; font-weight: 800; }
-  </style>
+  <title>Rate Limiter — Live Demo</title>
+  <link rel="stylesheet" href="/static/css/styles.css"/>
 </head>
-<body class="min-h-screen p-6 md:p-10">
-
-  <div class="max-w-xl mx-auto">
+<body>
+  <div style="max-width:600px;margin:0 auto;">
 
     <!-- Header -->
-    <div class="mb-8">
-      <div class="text-xs text-gray-600 mb-2 tracking-widest uppercase">Backend Systems Demo</div>
-      <h1 class="text-3xl font-extrabold text-white mb-1">Rate Limiter</h1>
-      <p class="text-gray-500 text-sm">10 requests / 60 seconds · Redis-backed · 3 algorithms</p>
+    <div style="margin-bottom:32px;">
+      <div class="section-label">Backend Systems Demo</div>
+      <h1 style="font-size:28px;color:#fff;margin-bottom:6px;">Rate Limiter</h1>
+      <p style="color:#555;font-size:13px;">
+        10 req / 60s · Redis-backed ·
+        <span id="algo-label" style="color:var(--green)">Fixed Window</span>
+      </p>
     </div>
 
     <!-- Algorithm Selector -->
-    <div class="flex gap-2 mb-6 flex-wrap">
-      <button class="algo-btn active" id="btn-fixed-window" onclick="setAlgo('fixed-window')">Fixed Window</button>
-      <button class="algo-btn" id="btn-sliding-window" onclick="setAlgo('sliding-window')">Sliding Window</button>
-      <button class="algo-btn" id="btn-token-bucket" onclick="setAlgo('token-bucket')">Token Bucket</button>
+    <div style="display:flex;gap:8px;margin-bottom:24px;flex-wrap:wrap;">
+      <button class="algo-btn active" id="btn-fixed-window"   onclick="setAlgo('fixed-window')">Fixed Window</button>
+      <button class="algo-btn"        id="btn-sliding-window" onclick="setAlgo('sliding-window')">Sliding Window</button>
+      <button class="algo-btn"        id="btn-token-bucket"   onclick="setAlgo('token-bucket')">Token Bucket</button>
     </div>
 
-    <!-- Stats Row -->
-    <div class="grid grid-cols-3 gap-3 mb-5">
+    <!-- Stats -->
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px;">
       <div class="stat-box">
-        <div class="stat-number text-white" id="stat-used">0</div>
-        <div class="text-gray-600 text-xs mt-1">Used</div>
+        <div class="stat-number" id="stat-used" style="color:#fff">0</div>
+        <div class="stat-label">Used</div>
       </div>
       <div class="stat-box">
         <div class="stat-number" id="stat-remaining" style="color:var(--green)">10</div>
-        <div class="text-gray-600 text-xs mt-1">Remaining</div>
+        <div class="stat-label">Left</div>
       </div>
       <div class="stat-box">
-        <div class="stat-number" id="stat-status" style="color:var(--green)">OK</div>
-        <div class="text-gray-600 text-xs mt-1">Status</div>
+        <div class="stat-number" id="stat-status" style="color:var(--green)">200</div>
+        <div class="stat-label">Status</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-number" id="stat-hits" style="color:#fff">0</div>
+        <div class="stat-label">Total</div>
       </div>
     </div>
 
-    <!-- Progress Bar -->
-    <div class="progress-track mb-5">
-      <div id="progress-fill" style="width:0%"></div>
+    <!-- Progress -->
+    <div class="progress-track" style="margin-bottom:20px;">
+      <div id="progress-fill"></div>
     </div>
 
-    <!-- Fire Button -->
-    <button id="fire-btn" onclick="fireRequest()">FIRE REQUEST →</button>
+    <!-- Buttons -->
+    <button id="fire-btn" onclick="fireRequest()" style="margin-bottom:10px;">
+      FIRE REQUEST →
+    </button>
+    <button id="burst-btn" onclick="burstFire()">
+      BURST ×10
+    </button>
 
     <!-- Timer -->
-    <div id="timer-container" class="mt-5">
-      <div class="text-xs tracking-widest uppercase mb-3" style="color:var(--red)">Rate Limited — Window resets in</div>
+    <div id="timer-container" style="margin-top:20px;">
+      <div class="section-label" style="color:var(--red)">Rate Limited — resets in</div>
       <div id="timer-number">60</div>
-      <div class="timer-track"><div id="timer-fill" style="width:100%"></div></div>
-      <div class="text-gray-600 text-xs mt-3">Button unlocks automatically</div>
+      <div class="timer-track"><div id="timer-fill"></div></div>
+      <div style="color:#444;font-size:11px;margin-top:10px;">Button unlocks automatically</div>
     </div>
 
     <!-- Log -->
-    <div class="mt-6">
-      <div class="text-xs text-gray-600 tracking-widest uppercase mb-3">Request Log</div>
-      <div id="log" class="space-y-2 max-h-72 overflow-y-auto"></div>
-      <div id="log-empty" class="text-gray-700 text-sm text-center py-8">No requests yet</div>
+    <div style="margin-top:28px;">
+      <div class="section-label">Request Log</div>
+      <div id="log" style="display:flex;flex-direction:column;gap:6px;max-height:320px;overflow-y:auto;"></div>
+      <div id="log-empty" style="color:#333;font-size:13px;text-align:center;padding:32px 0;">
+        No requests yet — fire one above
+      </div>
     </div>
 
   </div>
 
-  <script>
-    let algo = 'fixed-window';
-    let isFiring = false;
-    let timerInterval = null;
-
-    function setAlgo(name) {
-      algo = name;
-      document.querySelectorAll('.algo-btn').forEach(b => b.classList.remove('active'));
-      document.getElementById('btn-' + name).classList.add('active');
-      resetUI();
-    }
-
-    function resetUI() {
-      stopTimer();
-      setStats(0, 10, true);
-      document.getElementById('log').innerHTML = '';
-      document.getElementById('log-empty').style.display = 'block';
-    }
-
-    function setStats(used, remaining, allowed) {
-      const max = 10;
-      document.getElementById('stat-used').textContent = used;
-      document.getElementById('stat-remaining').textContent = remaining;
-      document.getElementById('stat-remaining').style.color = remaining <= 2 ? 'var(--yellow)' : 'var(--green)';
-
-      const statusEl = document.getElementById('stat-status');
-      if (!allowed) {
-        statusEl.textContent = '429';
-        statusEl.style.color = 'var(--red)';
-      } else {
-        statusEl.textContent = '200';
-        statusEl.style.color = 'var(--green)';
-      }
-
-      const pct = Math.min((used / max) * 100, 100);
-      document.getElementById('progress-fill').style.width = pct + '%';
-      document.getElementById('progress-fill').style.background = !allowed ? 'var(--red)' : pct > 70 ? 'var(--yellow)' : 'var(--green)';
-    }
-
-    function startTimer(seconds) {
-      const container = document.getElementById('timer-container');
-      const display = document.getElementById('timer-number');
-      const fill = document.getElementById('timer-fill');
-      const btn = document.getElementById('fire-btn');
-      const total = seconds;
-
-      container.style.display = 'block';
-      btn.disabled = true;
-      btn.classList.add('locked');
-      btn.textContent = `LOCKED · ${seconds}s`;
-
-      let remaining = seconds;
-      display.textContent = remaining;
-      fill.style.width = '100%';
-
-      if (timerInterval) clearInterval(timerInterval);
-
-      timerInterval = setInterval(() => {
-        remaining -= 1;
-        display.textContent = remaining;
-        fill.style.width = `${(remaining / total) * 100}%`;
-        btn.textContent = `LOCKED · ${remaining}s`;
-
-        if (remaining <= 0) stopTimer();
-      }, 1000);
-    }
-
-    function stopTimer() {
-      if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
-      document.getElementById('timer-container').style.display = 'none';
-      const btn = document.getElementById('fire-btn');
-      btn.disabled = false;
-      btn.classList.remove('locked');
-      btn.textContent = 'FIRE REQUEST →';
-      setStats(0, 10, true);
-    }
-
-    async function fireRequest() {
-      if (isFiring) return;
-      isFiring = true;
-
-      const btn = document.getElementById('fire-btn');
-      btn.disabled = true;
-      btn.textContent = 'FIRING...';
-
-      try {
-        const res = await fetch(`/api/${algo}`);
-        const data = await res.json();
-        const allowed = res.status !== 429;
-
-        const used = data.count || 0;
-        const remaining = data.remaining !== undefined ? data.remaining : Math.max(0, 10 - used);
-        setStats(used, remaining, allowed);
-
-        if (!allowed) {
-          startTimer(data.retry_after || 60);
-        } else {
-          btn.disabled = false;
-          btn.textContent = 'FIRE REQUEST →';
-        }
-
-        appendLog(data, allowed, res.status);
-      } catch (err) {
-        appendLog({ error: 'Request failed' }, false, 500);
-        btn.disabled = false;
-        btn.textContent = 'FIRE REQUEST →';
-      } finally {
-        isFiring = false;
-      }
-    }
-
-    function appendLog(data, allowed, status) {
-      const empty = document.getElementById('log-empty');
-      if (empty) empty.style.display = 'none';
-
-      const log = document.getElementById('log');
-      const entry = document.createElement('div');
-      entry.className = `log-entry ${allowed ? '' : 'blocked'}`;
-      entry.innerHTML = `
-        <span class="badge ${allowed ? 'allowed' : 'blocked'}">${status} ${allowed ? 'ALLOWED' : 'BLOCKED'}</span>
-        <span style="color:#444;font-size:10px">${new Date().toLocaleTimeString()}</span>
-        <span style="color:#555;font-size:10px;margin-left:auto">${data.remaining !== undefined ? `${data.remaining} left` : ''}</span>
-      `;
-      log.prepend(entry);
-
-      // Keep max 20 entries
-      while (log.children.length > 20) log.removeChild(log.lastChild);
-    }
-  </script>
+  <script src="/static/js/api.js"></script>
+  <script src="/static/js/timer.js"></script>
+  <script src="/static/js/ui.js"></script>
+  <script src="/static/js/app.js"></script>
 </body>
 </html>
