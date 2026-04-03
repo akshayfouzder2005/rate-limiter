@@ -15,12 +15,15 @@ local elapsed = now - last_refill
 local new_tokens = math.min(capacity, tokens + (elapsed * refill_rate))
 
 if new_tokens >= 1 then
+    local remaining = math.floor(new_tokens - 1)
     redis.call('HMSET', key, 'tokens', new_tokens - 1, 'last_refill', now)
     redis.call('EXPIRE', key, 3600)
-    return {1, math.floor(new_tokens - 1)}
+    return {1, remaining, 0}
 else
+    -- time until next token = (1 - new_tokens) / refill_rate
+    local wait = math.ceil((1 - new_tokens) / refill_rate)
     redis.call('HMSET', key, 'tokens', new_tokens, 'last_refill', now)
-    return {0, 0}
+    return {0, 0, wait}
 end
 """
 
@@ -33,8 +36,14 @@ def token_bucket(client_id: str, capacity: int, refill_rate: float) -> dict:
     )
     allowed = result[0] == 1
     remaining = int(result[1])
+    reset_in = int(result[2])  # seconds until next token available
+    used = capacity - remaining
+
     return {
         "allowed": allowed,
+        "algorithm": "token_bucket",
+        "count": used,
         "remaining": remaining,
-        "capacity": capacity
+        "reset_in": reset_in,
+        "limit": capacity
     }

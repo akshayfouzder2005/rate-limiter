@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>RateLimiter SDK Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "tertiary-container": "#3a0c00",
+                      "inverse-on-surface": "#313035",
+                      "secondary-container": "#4a4565",
+                      "surface": "#141318",
+                      "surface-container-highest": "#35343a",
+                      "surface-bright": "#3a383e",
+                      "outline": "#938f9c",
+                      "on-tertiary-fixed-variant": "#713521",
+                      "primary-fixed-dim": "#c9bfff",
+                      "on-tertiary-fixed": "#390c00",
+                      "surface-container-low": "#1c1b20",
+                      "on-secondary-container": "#bbb4d9",
+                      "surface-container-high": "#2b292f",
+                      "background": "#141318",
+                      "on-primary-fixed-variant": "#473b88",
+                      "on-surface-variant": "#c9c4d2",
+                      "surface-variant": "#35343a",
+                      "secondary": "#c9c2e8",
+                      "on-primary-fixed": "#1a065c",
+                      "secondary-fixed": "#e5deff",
+                      "primary-fixed": "#e5deff",
+                      "on-error-container": "#ffdad6",
+                      "tertiary": "#ffb59d",
+                      "error-container": "#93000a",
+                      "on-secondary-fixed-variant": "#484362",
+                      "secondary-fixed-dim": "#c9c2e8",
+                      "inverse-surface": "#e5e1e8",
+                      "primary": "#c9bfff",
+                      "tertiary-fixed-dim": "#ffb59d",
+                      "surface-tint": "#c9bfff",
+                      "surface-container-lowest": "#0e0e13",
+                      "primary-container": "#1b075c",
+                      "on-surface": "#e5e1e8",
+                      "error": "#ffb4ab",
+                      "on-error": "#690005",
+                      "on-primary": "#302370",
+                      "surface-dim": "#141318",
+                      "inverse-primary": "#5f53a2",
+                      "on-secondary": "#312d4a",
+                      "on-tertiary": "#55200d",
+                      "tertiary-fixed": "#ffdbd0",
+                      "on-background": "#e5e1e8",
+                      "outline-variant": "#484551",
+                      "on-tertiary-container": "#bc7158",
+                      "on-secondary-fixed": "#1c1834",
+                      "on-primary-container": "#8579cb",
+                      "surface-container": "#201f24"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.125rem",
+                      "lg": "0.25rem",
+                      "xl": "0.5rem",
+                      "full": "0.75rem"
+              },
+              "fontFamily": {
+                      "headline": ["Manrope"],
+                      "body": ["Inter"],
+                      "label": ["Inter"]
+              }
+            },
+          },
+        }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; }
+        h1, h2, h3, h4 { font-family: 'Manrope', sans-serif; }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .gradient-primary {
+            background: linear-gradient(135deg, #c9bfff 0%, #1b075c 100%);
+        }
+        .animate-shimmer {
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+            background-size: 200% 100%;
+            animation: shimmer 2s infinite linear;
+        }
+        @keyframes shimmer {
+            0% { background-position: -200% 0; }
+            100% { background-position: 200% 0; }
+        }
+    </style>
+</head>
+<body class="bg-surface text-on-surface">
+<!-- TopNavBar -->
+<header class="fixed top-0 left-0 right-0 z-50 bg-surface/80 backdrop-blur-xl border-b border-outline-variant/10 shadow-xl shadow-black/20">
+<nav class="flex justify-between items-center w-full px-8 h-16 max-w-7xl mx-auto">
+<div class="text-xl font-bold tracking-tight text-on-surface">RateLimiter SDK</div>
+<div class="hidden md:flex items-center gap-8">
+<a class="text-primary border-b-2 border-primary pb-1 font-semibold transition-all duration-200 hover:opacity-80" href="#">Dashboard</a>
+<a class="text-on-surface-variant hover:text-primary transition-all duration-200 hover:opacity-80" href="#">Configuration</a>
+<a class="text-on-surface-variant hover:text-primary transition-all duration-200 hover:opacity-80" href="#">Documentation</a>
+</div>
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-on-surface-variant hover:text-primary cursor-pointer">hub</span>
+<button class="bg-primary text-on-primary px-5 py-2 rounded-xl font-semibold shadow-sm hover:opacity-90 active:scale-95 transition-all">Get Started</button>
+</div>
+</nav>
+</header>
+<main class="pt-24 pb-16 px-6 max-w-7xl mx-auto">
+<!-- Hero Section -->
+<section class="mb-12 text-center">
+<h1 class="text-5xl font-extrabold tracking-tight mb-4 text-on-surface">
+                Precision Traffic Control.
+            </h1>
+<p class="text-xl text-on-surface-variant max-w-2xl mx-auto">
+                Test your API rate limits in real-time. Experience how our SDK handles high-concurrency environments with surgical accuracy.
+            </p>
+</section>
+<!-- Dashboard Layout: Asymmetric Grid -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+<!-- Left Config Sidebar -->
+<aside class="lg:col-span-3 space-y-6">
+<div class="bg-surface-container-low p-6 rounded-xl space-y-6">
+<h3 class="text-lg font-bold flex items-center gap-2">
+<span class="material-symbols-outlined text-primary">settings_input_component</span>
+                        SDK Configuration
+                    </h3>
+<div class="space-y-4">
+<div>
+<label class="text-xs font-bold text-on-surface-variant mb-2 block uppercase tracking-wider">Limit per window</label>
+<input class="w-full bg-surface-container-low border-0 border-b-2 border-outline-variant focus:border-primary focus:ring-0 transition-colors p-2 text-on-surface font-medium" type="number" value="10"/>
+</div>
+<div>
+<label class="text-xs font-bold text-on-surface-variant mb-2 block uppercase tracking-wider">Window Size (s)</label>
+<input class="w-full bg-surface-container-low border-0 border-b-2 border-outline-variant focus:border-primary focus:ring-0 transition-colors p-2 text-on-surface font-medium" type="number" value="60"/>
+</div>
+<div>
+<label class="text-xs font-bold text-on-surface-variant mb-2 block uppercase tracking-wider">Algorithm</label>
+<select class="w-full bg-surface-container-low border-0 border-b-2 border-outline-variant focus:border-primary focus:ring-0 transition-colors p-2 text-on-surface font-medium">
+<option>Sliding Window Log</option>
+<option>Token Bucket</option>
+<option>Fixed Window</option>
+</select>
+</div>
+</div>
+<button class="w-full py-3 rounded-xl bg-surface-container-highest text-primary font-bold hover:bg-primary-container hover:text-on-primary-container transition-colors">
+                        Apply Changes
+                    </button>
+</div>
+<div class="p-6 rounded-xl bg-surface-container-low">
+<h4 class="text-sm font-bold text-on-surface mb-3">Live Log</h4>
+<div class="space-y-2 font-mono text-[10px] leading-tight text-on-surface-variant">
+<div class="flex justify-between"><span>[14:20:11]</span> <span class="text-tertiary">REQ_OK</span></div>
+<div class="flex justify-between"><span>[14:20:12]</span> <span class="text-tertiary">REQ_OK</span></div>
+<div class="flex justify-between"><span>[14:20:14]</span> <span class="text-tertiary">REQ_OK</span></div>
+<div class="flex justify-between"><span>[14:20:15]</span> <span class="text-error">RATE_LIMIT</span></div>
+</div>
+</div>
+</aside>
+<!-- Main Interactive Canvas -->
+<div class="lg:col-span-9 grid grid-cols-1 md:grid-cols-2 gap-8">
+<!-- Request Interaction Card -->
+<div class="bg-surface-container-lowest p-10 rounded-xl flex flex-col items-center justify-center text-center space-y-8 shadow-2xl shadow-black/40">
+<div class="space-y-2">
+<div class="inline-flex items-center px-4 py-1.5 rounded-full bg-primary-container text-on-primary-container text-xs font-bold">
+<span class="w-2 h-2 rounded-full bg-primary mr-2 animate-pulse"></span>
+                            Status: Ready
+                        </div>
+<p class="text-sm text-on-surface-variant font-medium">System operational and accepting requests</p>
+</div>
+<button class="gradient-primary w-48 h-48 rounded-full flex flex-col items-center justify-center text-on-primary shadow-2xl shadow-primary-container/50 group hover:scale-105 active:scale-95 transition-all duration-300">
+<span class="material-symbols-outlined text-5xl mb-2" style="font-variation-settings: 'FILL' 1;">send</span>
+<span class="text-xl font-bold">Fire Request</span>
+</button>
+<div class="w-full space-y-2">
+<div class="flex justify-between text-sm font-bold text-on-surface">
+<span>Usage Progress</span>
+<span>5 / 10 Requests</span>
+</div>
+<div class="h-3 w-full bg-surface-container-high rounded-full overflow-hidden">
+<div class="h-full bg-primary w-1/2 relative">
+<div class="absolute inset-0 animate-shimmer"></div>
+</div>
+</div>
+</div>
+</div>
+<!-- Stats & Metrics Grid -->
+<div class="grid grid-cols-1 gap-6">
+<!-- Metrics Card -->
+<div class="bg-surface-container-low p-8 rounded-xl flex flex-col justify-between">
+<div class="flex justify-between items-start">
+<h3 class="text-xl font-bold tracking-tight">Real-time Metrics</h3>
+<span class="material-symbols-outlined text-primary">insights</span>
+</div>
+<div class="space-y-6 mt-8">
+<div class="flex items-center justify-between p-4 bg-surface-container-lowest rounded-xl">
+<div>
+<p class="text-xs font-bold text-on-surface-variant uppercase tracking-widest">Remaining</p>
+<p class="text-3xl font-black text-on-surface">5</p>
+</div>
+<div class="text-primary/20">
+<span class="material-symbols-outlined text-5xl">hourglass_empty</span>
+</div>
+</div>
+<div class="flex items-center justify-between p-4 bg-surface-container-lowest rounded-xl border-l-4 border-primary">
+<div>
+<p class="text-xs font-bold text-on-surface-variant uppercase tracking-widest">Resetting in</p>
+<p class="text-3xl font-black text-on-surface">08<span class="text-lg font-bold ml-1">s</span></p>
+</div>
+<div class="text-primary/20">
+<span class="material-symbols-outlined text-5xl">update</span>
+</div>
+</div>
+<div class="flex items-center justify-between p-4 bg-surface-container-lowest rounded-xl">
+<div>
+<p class="text-xs font-bold text-on-surface-variant uppercase tracking-widest">Total Hits</p>
+<p class="text-3xl font-black text-on-surface">12</p>
+</div>
+<div class="text-primary/20">
+<span class="material-symbols-outlined text-5xl">ads_click</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Visual Context Card -->
+<div class="relative rounded-xl overflow-hidden h-40 group">
+<img class="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" data-alt="Modern data visualization on a sleek dark monitor with vibrant indigo and blue light streaks in a clean studio setting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD6nfsEGXEVdBb7bonHfXaA2b-R9rtvtwzlEhEr-UjNmpkRjayXJoO9fAdM6_fjk9ZUNep4E2i0o7QBD2MBMy7DqCO1wqYJ6vuUQUnT1mwh9fgIUpB5BYy_fHV5iFJdw1pRw66U6OY7UZ5o64gDfXSvPSgwcJ4QBByeI8heuiyJCJFl5pYrH80GA16tbhiOZTBdxl-DwDEx5OMsgRb56f-2wVw-MpkRikTQm00aQhx1BxyfBurje1oUX1bZTMdW5Np7kwLFUXMKLQ"/>
+<div class="absolute inset-0 bg-primary-container/60 mix-blend-multiply"></div>
+<div class="absolute inset-0 p-6 flex flex-col justify-end">
+<p class="text-on-primary font-bold text-lg leading-tight">Scale with confidence.</p>
+<p class="text-on-primary/70 text-xs">Our distributed architecture ensures &lt;1ms latency.</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- Footer -->
+<footer class="mt-auto bg-surface-container-lowest py-12 border-t border-outline-variant/10">
+<div class="flex flex-col md:flex-row justify-between items-center px-8 max-w-7xl mx-auto">
+<div class="mb-6 md:mb-0">
+<div class="text-lg font-black font-headline text-on-surface mb-2">RateLimiter SDK</div>
+<p class="text-sm font-medium text-on-surface-variant">© 2024 Digital Architect Labs. Built for precision.</p>
+</div>
+<div class="flex gap-8">
+<a class="text-sm font-medium text-on-surface-variant hover:text-primary transition-colors" href="#">Source Code</a>
+<a class="text-sm font-medium text-on-surface-variant hover:text-primary transition-colors" href="#">Licensing</a>
+<a class="text-sm font-medium text-on-surface-variant hover:text-primary transition-colors" href="#">API Status</a>
+<a class="text-sm font-medium text-on-surface-variant hover:text-primary transition-colors" href="#">Privacy</a>
+</div>
+</div>
+</footer>
+</body></html>

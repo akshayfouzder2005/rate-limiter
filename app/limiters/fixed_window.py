@@ -9,10 +9,16 @@ def fixed_window(client_id: str, max_requests: int, window_seconds: int) -> dict
     if count == 1:
         r.expire(key, window_seconds)
 
+    # Cap count at max_requests so remaining never goes negative
+    effective_count = min(count, max_requests)
     allowed = count <= max_requests
+    reset_in = window_seconds - (int(time.time()) % window_seconds)
+
     return {
         "allowed": allowed,
-        "count": count,
-        "remaining": max(0, max_requests - count),
-        "reset_in": window_seconds - (int(time.time()) % window_seconds)
+        "algorithm": "fixed_window",
+        "count": effective_count,
+        "remaining": max_requests - effective_count,
+        "reset_in": reset_in,
+        "limit": max_requests
     }

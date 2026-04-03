@@ -12,44 +12,50 @@ app.mount("/static", StaticFiles(directory="frontend"), name="static")
 def get_client_id(request: Request) -> str:
     return request.headers.get("X-API-Key") or request.client.host
 
-def rate_limit_response(result: dict, algorithm: str):
+def build_response(result: dict) -> JSONResponse:
+    status_code = 200 if result["allowed"] else 429
+    content = {
+        "allowed": result["allowed"],
+        "algorithm": result["algorithm"],
+        "count": result["count"],
+        "remaining": result["remaining"],
+        "reset_in": result["reset_in"],
+        "limit": result["limit"],
+    }
     if not result["allowed"]:
-        return JSONResponse(
-            status_code=429,
-            content={
-                "error": "Rate limit exceeded",
-                "algorithm": algorithm,
-                "retry_after": result.get("reset_in", 60)
-            },
-            headers={"Retry-After": str(result.get("reset_in", 60))}
-        )
-    return None
+        content["error"] = "Rate limit exceeded"
 
-# --- Demo endpoints, one per algorithm ---
+    headers = {
+        "X-RateLimit-Limit": str(result["limit"]),
+        "X-RateLimit-Remaining": str(result["remaining"]),
+        "X-RateLimit-Reset": str(result["reset_in"]),
+    }
+    if not result["allowed"]:
+        headers["Retry-After"] = str(result["reset_in"])
+
+    return JSONResponse(status_code=status_code, content=content, headers=headers)
+
+@app.get("/health")
+async def health():
+    return {"status": "ok"}
 
 @app.get("/api/fixed-window")
 async def fixed_window_route(request: Request):
     client_id = get_client_id(request)
     result = fixed_window(client_id, settings.DEFAULT_MAX_REQUESTS, settings.DEFAULT_WINDOW_SECONDS)
-    err = rate_limit_response(result, "fixed_window")
-    if err: return err
-    return {"message": "Request allowed", "algorithm": "fixed_window", **result}
+    return build_response(result)
 
 @app.get("/api/sliding-window")
 async def sliding_window_route(request: Request):
     client_id = get_client_id(request)
     result = sliding_window_log(client_id, settings.DEFAULT_MAX_REQUESTS, settings.DEFAULT_WINDOW_SECONDS)
-    err = rate_limit_response(result, "sliding_window_log")
-    if err: return err
-    return {"message": "Request allowed", "algorithm": "sliding_window_log", **result}
+    return build_response(result)
 
 @app.get("/api/token-bucket")
 async def token_bucket_route(request: Request):
     client_id = get_client_id(request)
     result = token_bucket(client_id, capacity=10, refill_rate=0.2)
-    err = rate_limit_response(result, "token_bucket")
-    if err: return err
-    return {"message": "Request allowed", "algorithm": "token_bucket", **result}
+    return build_response(result)
 
 @app.get("/")
 async def serve_ui():
