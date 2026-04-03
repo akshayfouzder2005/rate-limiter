@@ -4,156 +4,321 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Rate Limiter Demo</title>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Syne:wght@700;800&display=swap" rel="stylesheet"/>
   <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body class="bg-gray-950 text-white min-h-screen p-10 font-mono">
+  <style>
+    :root {
+      --green: #00ff87;
+      --red: #ff3b5c;
+      --yellow: #ffd166;
+      --bg: #0a0a0f;
+      --card: #12121a;
+      --border: #1e1e2e;
+    }
+    body { background: var(--bg); font-family: 'JetBrains Mono', monospace; }
+    h1 { font-family: 'Syne', sans-serif; }
 
-  <div class="max-w-2xl mx-auto">
-    <h1 class="text-3xl font-bold mb-2"> Rate Limiter Demo</h1>
-    <p class="text-gray-400 mb-8">10 requests / 60 seconds. Try hitting the limit.</p>
+    .algo-btn {
+      border: 1px solid var(--border);
+      background: var(--card);
+      color: #666;
+      padding: 8px 16px;
+      border-radius: 6px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .algo-btn.active {
+      border-color: var(--green);
+      color: var(--green);
+      box-shadow: 0 0 12px rgba(0,255,135,0.15);
+    }
+    .algo-btn:hover:not(.active) { border-color: #444; color: #aaa; }
+
+    #fire-btn {
+      width: 100%;
+      padding: 16px;
+      border-radius: 8px;
+      font-family: 'Syne', sans-serif;
+      font-size: 18px;
+      font-weight: 800;
+      letter-spacing: 1px;
+      cursor: pointer;
+      border: none;
+      transition: all 0.15s;
+      background: var(--green);
+      color: #000;
+    }
+    #fire-btn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 4px 20px rgba(0,255,135,0.3); }
+    #fire-btn:disabled { background: #1e1e2e; color: #444; cursor: not-allowed; transform: none; box-shadow: none; }
+    #fire-btn.locked { background: var(--red); color: #fff; }
+
+    .progress-track {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      height: 8px;
+      overflow: hidden;
+    }
+    #progress-fill {
+      height: 100%;
+      border-radius: 4px;
+      transition: width 0.3s ease, background 0.3s ease;
+      background: var(--green);
+    }
+
+    #timer-container {
+      background: rgba(255,59,92,0.08);
+      border: 1px solid rgba(255,59,92,0.3);
+      border-radius: 12px;
+      padding: 24px;
+      text-align: center;
+      display: none;
+    }
+    #timer-number {
+      font-family: 'Syne', sans-serif;
+      font-size: 72px;
+      font-weight: 800;
+      color: var(--red);
+      line-height: 1;
+      font-variant-numeric: tabular-nums;
+    }
+    .timer-track {
+      background: rgba(255,59,92,0.15);
+      border-radius: 4px;
+      height: 4px;
+      margin-top: 12px;
+      overflow: hidden;
+    }
+    #timer-fill {
+      height: 100%;
+      border-radius: 4px;
+      background: var(--red);
+      transition: width 1s linear;
+    }
+
+    .log-entry {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 10px 14px;
+      font-size: 11px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      animation: slideIn 0.2s ease;
+    }
+    .log-entry.blocked { border-color: rgba(255,59,92,0.4); background: rgba(255,59,92,0.05); }
+    @keyframes slideIn { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
+
+    .badge {
+      font-size: 10px;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+    .badge.allowed { background: rgba(0,255,135,0.15); color: var(--green); }
+    .badge.blocked { background: rgba(255,59,92,0.15); color: var(--red); }
+
+    .stat-box {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px 16px;
+      text-align: center;
+    }
+    .stat-number { font-family: 'Syne', sans-serif; font-size: 28px; font-weight: 800; }
+  </style>
+</head>
+<body class="min-h-screen p-6 md:p-10">
+
+  <div class="max-w-xl mx-auto">
+
+    <!-- Header -->
+    <div class="mb-8">
+      <div class="text-xs text-gray-600 mb-2 tracking-widest uppercase">Backend Systems Demo</div>
+      <h1 class="text-3xl font-extrabold text-white mb-1">Rate Limiter</h1>
+      <p class="text-gray-500 text-sm">10 requests / 60 seconds · Redis-backed · 3 algorithms</p>
+    </div>
 
     <!-- Algorithm Selector -->
-    <div class="flex gap-3 mb-6">
-      <button onclick="setAlgo('fixed-window')"   id="btn-fixed-window"   class="algo-btn px-4 py-2 rounded bg-indigo-600 hover:bg-indigo-500">Fixed Window</button>
-      <button onclick="setAlgo('sliding-window')" id="btn-sliding-window" class="algo-btn px-4 py-2 rounded bg-gray-700 hover:bg-gray-600">Sliding Window</button>
-      <button onclick="setAlgo('token-bucket')"   id="btn-token-bucket"   class="algo-btn px-4 py-2 rounded bg-gray-700 hover:bg-gray-600">Token Bucket</button>
+    <div class="flex gap-2 mb-6 flex-wrap">
+      <button class="algo-btn active" id="btn-fixed-window" onclick="setAlgo('fixed-window')">Fixed Window</button>
+      <button class="algo-btn" id="btn-sliding-window" onclick="setAlgo('sliding-window')">Sliding Window</button>
+      <button class="algo-btn" id="btn-token-bucket" onclick="setAlgo('token-bucket')">Token Bucket</button>
     </div>
 
-    <!-- Fire Request Button -->
-    <button id="fire-btn" onclick="fireRequest()" class="w-full py-3 bg-green-600 hover:bg-green-500 rounded text-lg font-bold mb-6">
-  Fire Request →
-     </button>
-
-    <!-- Status Bar -->
-    <div id="status-bar" class="mb-4 h-4 rounded bg-gray-800 overflow-hidden">
-      <div id="status-fill" class="h-full bg-green-500 transition-all duration-300" style="width:0%"></div>
+    <!-- Stats Row -->
+    <div class="grid grid-cols-3 gap-3 mb-5">
+      <div class="stat-box">
+        <div class="stat-number text-white" id="stat-used">0</div>
+        <div class="text-gray-600 text-xs mt-1">Used</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-number" id="stat-remaining" style="color:var(--green)">10</div>
+        <div class="text-gray-600 text-xs mt-1">Remaining</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-number" id="stat-status" style="color:var(--green)">OK</div>
+        <div class="text-gray-600 text-xs mt-1">Status</div>
+      </div>
     </div>
-    <p id="status-text" class="text-gray-400 text-sm mb-6">No requests yet.</p>
 
-    <div id="timer-container" class="hidden mb-6 text-center">
-  <p class="text-red-400 text-sm mb-2">Next request window opens in</p>
-  <div id="timer-display" class="text-5xl font-bold text-red-400 tabular-nums">60</div>
-  <div class="w-full bg-gray-800 rounded h-2 mt-3">
-    <div id="timer-bar" class="h-2 rounded bg-red-500 transition-all duration-1000" style="width:100%"></div>
+    <!-- Progress Bar -->
+    <div class="progress-track mb-5">
+      <div id="progress-fill" style="width:0%"></div>
+    </div>
+
+    <!-- Fire Button -->
+    <button id="fire-btn" onclick="fireRequest()">FIRE REQUEST →</button>
+
+    <!-- Timer -->
+    <div id="timer-container" class="mt-5">
+      <div class="text-xs tracking-widest uppercase mb-3" style="color:var(--red)">Rate Limited — Window resets in</div>
+      <div id="timer-number">60</div>
+      <div class="timer-track"><div id="timer-fill" style="width:100%"></div></div>
+      <div class="text-gray-600 text-xs mt-3">Button unlocks automatically</div>
+    </div>
+
+    <!-- Log -->
+    <div class="mt-6">
+      <div class="text-xs text-gray-600 tracking-widest uppercase mb-3">Request Log</div>
+      <div id="log" class="space-y-2 max-h-72 overflow-y-auto"></div>
+      <div id="log-empty" class="text-gray-700 text-sm text-center py-8">No requests yet</div>
+    </div>
+
   </div>
-    </div>
 
-    <!-- Response Log -->
-    <div id="log" class="space-y-2 max-h-80 overflow-y-auto"></div>
-  </div>
+  <script>
+    let algo = 'fixed-window';
+    let isFiring = false;
+    let timerInterval = null;
 
-<script>
-  let algo = 'fixed-window';
-  let isFiring = false;
-  let timerInterval = null;
-
-  function setAlgo(name) {
-    algo = name;
-    document.getElementById('log').innerHTML = '';
-    document.getElementById('status-text').textContent = 'Switched to ' + name;
-    document.getElementById('status-fill').style.width = '0%';
-    document.getElementById('status-fill').className = 'h-full transition-all duration-300 bg-green-500';
-    document.querySelectorAll('.algo-btn').forEach(b => {
-      b.classList.remove('bg-indigo-600');
-      b.classList.add('bg-gray-700');
-    });
-    document.getElementById('btn-' + name).classList.remove('bg-gray-700');
-    document.getElementById('btn-' + name).classList.add('bg-indigo-600');
-    stopTimer();
-  }
-
-  function startTimer(seconds) {
-    const container = document.getElementById('timer-container');
-    const display = document.getElementById('timer-display');
-    const bar = document.getElementById('timer-bar');
-    const btn = document.getElementById('fire-btn');
-    const total = seconds;
-
-    container.classList.remove('hidden');
-    btn.disabled = true;
-    btn.textContent = `Locked for ${seconds}s`;
-
-    let remaining = seconds;
-    display.textContent = remaining;
-    bar.style.width = '100%';
-
-    if (timerInterval) clearInterval(timerInterval);
-
-    timerInterval = setInterval(() => {
-      remaining -= 1;
-      display.textContent = remaining;
-      bar.style.width = `${(remaining / total) * 100}%`;
-      btn.textContent = `Locked for ${remaining}s`;
-
-      if (remaining <= 0) {
-        stopTimer();
-      }
-    }, 1000);
-  }
-
-  function stopTimer() {
-    if (timerInterval) {
-      clearInterval(timerInterval);
-      timerInterval = null;
+    function setAlgo(name) {
+      algo = name;
+      document.querySelectorAll('.algo-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById('btn-' + name).classList.add('active');
+      resetUI();
     }
-    document.getElementById('timer-container').classList.add('hidden');
-    const btn = document.getElementById('fire-btn');
-    btn.disabled = false;
-    btn.textContent = 'Fire Request →';
-    document.getElementById('status-text').textContent = 'Window reset — fire again!';
-    document.getElementById('status-fill').style.width = '0%';
-    document.getElementById('status-fill').className = 'h-full transition-all duration-300 bg-green-500';
-  }
 
-  async function fireRequest() {
-    if (isFiring) return;
-    isFiring = true;
+    function resetUI() {
+      stopTimer();
+      setStats(0, 10, true);
+      document.getElementById('log').innerHTML = '';
+      document.getElementById('log-empty').style.display = 'block';
+    }
 
-    const btn = document.getElementById('fire-btn');
-    btn.disabled = true;
-    btn.textContent = 'Firing...';
-
-    try {
-      const res = await fetch(`/api/${algo}`);
-      const data = await res.json();
-      const allowed = res.status !== 429;
-      const count = data.count || 0;
+    function setStats(used, remaining, allowed) {
       const max = 10;
-      const pct = Math.min((count / max) * 100, 100);
-      const fill = document.getElementById('status-fill');
-      fill.style.width = pct + '%';
-      fill.className = `h-full transition-all duration-300 ${allowed ? 'bg-green-500' : 'bg-red-500'}`;
+      document.getElementById('stat-used').textContent = used;
+      document.getElementById('stat-remaining').textContent = remaining;
+      document.getElementById('stat-remaining').style.color = remaining <= 2 ? 'var(--yellow)' : 'var(--green)';
 
+      const statusEl = document.getElementById('stat-status');
       if (!allowed) {
-        const retryAfter = data.retry_after || 60;
-        document.getElementById('status-text').textContent = `❌ Rate limit hit`;
-        startTimer(retryAfter);
+        statusEl.textContent = '429';
+        statusEl.style.color = 'var(--red)';
       } else {
-        document.getElementById('status-text').textContent = `${count}/${max} requests used`;
-        btn.disabled = false;
-        btn.textContent = 'Fire Request →';
+        statusEl.textContent = '200';
+        statusEl.style.color = 'var(--green)';
       }
 
-      appendLog(data, allowed, res.status);
-    } catch (err) {
-      appendLog({ error: 'Request failed' }, false, 500);
-      btn.disabled = false;
-      btn.textContent = 'Fire Request →';
-    } finally {
-      isFiring = false;
+      const pct = Math.min((used / max) * 100, 100);
+      document.getElementById('progress-fill').style.width = pct + '%';
+      document.getElementById('progress-fill').style.background = !allowed ? 'var(--red)' : pct > 70 ? 'var(--yellow)' : 'var(--green)';
     }
-  }
 
-  function appendLog(data, allowed, status) {
-    const log = document.getElementById('log');
-    const entry = document.createElement('div');
-    entry.className = `p-3 rounded text-sm ${allowed ? 'bg-gray-800' : 'bg-red-900/40 border border-red-700'}`;
-    entry.innerHTML = `
-      <span class="${allowed ? 'text-green-400' : 'text-red-400'}">${status} ${allowed ? '✓ ALLOWED' : '✗ BLOCKED'}</span>
-      <span class="text-gray-400 ml-4">${JSON.stringify(data)}</span>
-    `;
-    log.prepend(entry);
-  }
-</script>
+    function startTimer(seconds) {
+      const container = document.getElementById('timer-container');
+      const display = document.getElementById('timer-number');
+      const fill = document.getElementById('timer-fill');
+      const btn = document.getElementById('fire-btn');
+      const total = seconds;
+
+      container.style.display = 'block';
+      btn.disabled = true;
+      btn.classList.add('locked');
+      btn.textContent = `LOCKED · ${seconds}s`;
+
+      let remaining = seconds;
+      display.textContent = remaining;
+      fill.style.width = '100%';
+
+      if (timerInterval) clearInterval(timerInterval);
+
+      timerInterval = setInterval(() => {
+        remaining -= 1;
+        display.textContent = remaining;
+        fill.style.width = `${(remaining / total) * 100}%`;
+        btn.textContent = `LOCKED · ${remaining}s`;
+
+        if (remaining <= 0) stopTimer();
+      }, 1000);
+    }
+
+    function stopTimer() {
+      if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+      document.getElementById('timer-container').style.display = 'none';
+      const btn = document.getElementById('fire-btn');
+      btn.disabled = false;
+      btn.classList.remove('locked');
+      btn.textContent = 'FIRE REQUEST →';
+      setStats(0, 10, true);
+    }
+
+    async function fireRequest() {
+      if (isFiring) return;
+      isFiring = true;
+
+      const btn = document.getElementById('fire-btn');
+      btn.disabled = true;
+      btn.textContent = 'FIRING...';
+
+      try {
+        const res = await fetch(`/api/${algo}`);
+        const data = await res.json();
+        const allowed = res.status !== 429;
+
+        const used = data.count || 0;
+        const remaining = data.remaining !== undefined ? data.remaining : Math.max(0, 10 - used);
+        setStats(used, remaining, allowed);
+
+        if (!allowed) {
+          startTimer(data.retry_after || 60);
+        } else {
+          btn.disabled = false;
+          btn.textContent = 'FIRE REQUEST →';
+        }
+
+        appendLog(data, allowed, res.status);
+      } catch (err) {
+        appendLog({ error: 'Request failed' }, false, 500);
+        btn.disabled = false;
+        btn.textContent = 'FIRE REQUEST →';
+      } finally {
+        isFiring = false;
+      }
+    }
+
+    function appendLog(data, allowed, status) {
+      const empty = document.getElementById('log-empty');
+      if (empty) empty.style.display = 'none';
+
+      const log = document.getElementById('log');
+      const entry = document.createElement('div');
+      entry.className = `log-entry ${allowed ? '' : 'blocked'}`;
+      entry.innerHTML = `
+        <span class="badge ${allowed ? 'allowed' : 'blocked'}">${status} ${allowed ? 'ALLOWED' : 'BLOCKED'}</span>
+        <span style="color:#444;font-size:10px">${new Date().toLocaleTimeString()}</span>
+        <span style="color:#555;font-size:10px;margin-left:auto">${data.remaining !== undefined ? `${data.remaining} left` : ''}</span>
+      `;
+      log.prepend(entry);
+
+      // Keep max 20 entries
+      while (log.children.length > 20) log.removeChild(log.lastChild);
+    }
+  </script>
 </body>
 </html>
