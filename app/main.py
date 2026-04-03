@@ -10,7 +10,19 @@ app = FastAPI(title="Rate Limiter API", version="1.0.0")
 app.mount("/static", StaticFiles(directory="frontend"), name="static")
 
 def get_client_id(request: Request) -> str:
-    return request.headers.get("X-API-Key") or request.client.host
+    # Check for API key first
+    api_key = request.headers.get("X-API-Key")
+    if api_key:
+        return api_key
+
+    # On Render/Railway, real IP is in X-Forwarded-For header
+    forwarded_for = request.headers.get("X-Forwarded-For")
+    if forwarded_for:
+        # Take the first IP — that's the real client IP
+        return forwarded_for.split(",")[0].strip()
+
+    # Fallback to direct IP
+    return request.client.host
 
 def build_response(result: dict) -> JSONResponse:
     status_code = 200 if result["allowed"] else 429
