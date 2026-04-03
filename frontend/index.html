@@ -20,9 +20,9 @@
     </div>
 
     <!-- Fire Request Button -->
-    <button onclick="fireRequest()" class="w-full py-3 bg-green-600 hover:bg-green-500 rounded text-lg font-bold mb-6">
-      Fire Request →
-    </button>
+    <button id="fire-btn" onclick="fireRequest()" class="w-full py-3 bg-green-600 hover:bg-green-500 rounded text-lg font-bold mb-6">
+  Fire Request →
+     </button>
 
     <!-- Status Bar -->
     <div id="status-bar" class="mb-4 h-4 rounded bg-gray-800 overflow-hidden">
@@ -30,86 +30,130 @@
     </div>
     <p id="status-text" class="text-gray-400 text-sm mb-6">No requests yet.</p>
 
+    <div id="timer-container" class="hidden mb-6 text-center">
+  <p class="text-red-400 text-sm mb-2">Next request window opens in</p>
+  <div id="timer-display" class="text-5xl font-bold text-red-400 tabular-nums">60</div>
+  <div class="w-full bg-gray-800 rounded h-2 mt-3">
+    <div id="timer-bar" class="h-2 rounded bg-red-500 transition-all duration-1000" style="width:100%"></div>
+  </div>
+    </div>
+
     <!-- Response Log -->
     <div id="log" class="space-y-2 max-h-80 overflow-y-auto"></div>
   </div>
 
-  <script>
-    let algo = 'fixed-window';
-    let requestCount = 0;
-    const MAX = 10;
+<script>
+  let algo = 'fixed-window';
+  let isFiring = false;
+  let timerInterval = null;
 
-    function setAlgo(name) {
-      algo = name;
-      requestCount = 0;
-      updateBar(0, true);
-      document.getElementById('log').innerHTML = '';
-      document.getElementById('status-text').textContent = 'Switched to ' + name;
-      document.querySelectorAll('.algo-btn').forEach(b => b.classList.replace('bg-indigo-600','bg-gray-700'));
-      document.getElementById('btn-' + name).classList.replace('bg-gray-700','bg-indigo-600');
-    }
-
-    async function fireRequest() {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 5000);
-
-  try {
-    const res = await fetch(`/api/${algo}`, { signal: controller.signal });
-    clearTimeout(timeout);
-    const data = await res.json();
-    const allowed = res.status !== 429;
-    if (allowed) requestCount = data.count || (requestCount + 1);
-    updateBar(requestCount, allowed);
-    appendLog(data, allowed, res.status);
-  } catch (err) {
-    clearTimeout(timeout);
-    appendLog({ error: "Request timed out or failed" }, false, 500);
+  function setAlgo(name) {
+    algo = name;
+    document.getElementById('log').innerHTML = '';
+    document.getElementById('status-text').textContent = 'Switched to ' + name;
+    document.getElementById('status-fill').style.width = '0%';
+    document.getElementById('status-fill').className = 'h-full transition-all duration-300 bg-green-500';
+    document.querySelectorAll('.algo-btn').forEach(b => {
+      b.classList.remove('bg-indigo-600');
+      b.classList.add('bg-gray-700');
+    });
+    document.getElementById('btn-' + name).classList.remove('bg-gray-700');
+    document.getElementById('btn-' + name).classList.add('bg-indigo-600');
+    stopTimer();
   }
-}
 
-    function updateBar(count, allowed) {
-      const pct = Math.min((count / MAX) * 100, 100);
+  function startTimer(seconds) {
+    const container = document.getElementById('timer-container');
+    const display = document.getElementById('timer-display');
+    const bar = document.getElementById('timer-bar');
+    const btn = document.getElementById('fire-btn');
+    const total = seconds;
+
+    container.classList.remove('hidden');
+    btn.disabled = true;
+    btn.textContent = `Locked for ${seconds}s`;
+
+    let remaining = seconds;
+    display.textContent = remaining;
+    bar.style.width = '100%';
+
+    if (timerInterval) clearInterval(timerInterval);
+
+    timerInterval = setInterval(() => {
+      remaining -= 1;
+      display.textContent = remaining;
+      bar.style.width = `${(remaining / total) * 100}%`;
+      btn.textContent = `Locked for ${remaining}s`;
+
+      if (remaining <= 0) {
+        stopTimer();
+      }
+    }, 1000);
+  }
+
+  function stopTimer() {
+    if (timerInterval) {
+      clearInterval(timerInterval);
+      timerInterval = null;
+    }
+    document.getElementById('timer-container').classList.add('hidden');
+    const btn = document.getElementById('fire-btn');
+    btn.disabled = false;
+    btn.textContent = 'Fire Request →';
+    document.getElementById('status-text').textContent = 'Window reset — fire again!';
+    document.getElementById('status-fill').style.width = '0%';
+    document.getElementById('status-fill').className = 'h-full transition-all duration-300 bg-green-500';
+  }
+
+  async function fireRequest() {
+    if (isFiring) return;
+    isFiring = true;
+
+    const btn = document.getElementById('fire-btn');
+    btn.disabled = true;
+    btn.textContent = 'Firing...';
+
+    try {
+      const res = await fetch(`/api/${algo}`);
+      const data = await res.json();
+      const allowed = res.status !== 429;
+      const count = data.count || 0;
+      const max = 10;
+      const pct = Math.min((count / max) * 100, 100);
       const fill = document.getElementById('status-fill');
       fill.style.width = pct + '%';
       fill.className = `h-full transition-all duration-300 ${allowed ? 'bg-green-500' : 'bg-red-500'}`;
-      document.getElementById('status-text').textContent =
-        allowed ? `${count}/${MAX} requests used` : `❌ Rate limit hit — retry after ${data?.retry_after || 60}s`;
+
+      if (!allowed) {
+        const retryAfter = data.retry_after || 60;
+        document.getElementById('status-text').textContent = `❌ Rate limit hit`;
+        startTimer(retryAfter);
+      } else {
+        document.getElementById('status-text').textContent = `${count}/${max} requests used`;
+        btn.disabled = false;
+        btn.textContent = 'Fire Request →';
+      }
+
+      appendLog(data, allowed, res.status);
+    } catch (err) {
+      appendLog({ error: 'Request failed' }, false, 500);
+      btn.disabled = false;
+      btn.textContent = 'Fire Request →';
+    } finally {
+      isFiring = false;
     }
-
-    function appendLog(data, allowed, status) {
-      const log = document.getElementById('log');
-      const entry = document.createElement('div');
-      entry.className = `p-3 rounded text-sm ${allowed ? 'bg-gray-800' : 'bg-red-900/40 border border-red-700'}`;
-      entry.innerHTML = `
-        <span class="${allowed ? 'text-green-400' : 'text-red-400'}">${status} ${allowed ? '✓ ALLOWED' : '✗ BLOCKED'}</span>
-        <span class="text-gray-400 ml-4">${JSON.stringify(data)}</span>
-      `;
-      log.prepend(entry);
-    }
-    async function fireRequest() {
-  const btn = document.querySelector('button[onclick="fireRequest()"]');
-  btn.disabled = true;
-  btn.textContent = "Firing...";
-
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 5000);
-
-  try {
-    const res = await fetch(`/api/${algo}`, { signal: controller.signal });
-    clearTimeout(timeout);
-    const data = await res.json();
-    const allowed = res.status !== 429;
-    if (allowed) requestCount = data.count || (requestCount + 1);
-    updateBar(requestCount, allowed);
-    appendLog(data, allowed, res.status);
-  } catch (err) {
-    clearTimeout(timeout);
-    appendLog({ error: "Request timed out or failed" }, false, 500);
-  } finally {
-    btn.disabled = false;
-    btn.textContent = "Fire Request →";
   }
-}
-  </script>
+
+  function appendLog(data, allowed, status) {
+    const log = document.getElementById('log');
+    const entry = document.createElement('div');
+    entry.className = `p-3 rounded text-sm ${allowed ? 'bg-gray-800' : 'bg-red-900/40 border border-red-700'}`;
+    entry.innerHTML = `
+      <span class="${allowed ? 'text-green-400' : 'text-red-400'}">${status} ${allowed ? '✓ ALLOWED' : '✗ BLOCKED'}</span>
+      <span class="text-gray-400 ml-4">${JSON.stringify(data)}</span>
+    `;
+    log.prepend(entry);
+  }
+</script>
 </body>
 </html>
