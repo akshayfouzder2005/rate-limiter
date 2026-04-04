@@ -10,7 +10,7 @@ A production-grade rate limiting service built from scratch — implementing thr
 
 ---
 
-## 🌐 Live Demo
+##  Live Demo
 
 **[https://rate-limiter-3g5i.onrender.com/](https://rate-limiter-3g5i.onrender.com/)**
 
@@ -116,7 +116,7 @@ Client Request
 
 ---
 
-## 📡 API Reference
+## API Reference
 
 All endpoints return a consistent response shape — both on success and on rate limit:
 
@@ -161,7 +161,7 @@ Retry-After: 32          ← only on 429
 
 ---
 
-## 🔑 Key Technical Decisions
+##  Key Technical Decisions
 
 **1. Lua scripting for Token Bucket atomicity**
 The token bucket requires a read-modify-write operation: fetch current tokens → calculate refill → check if sufficient → update. Without atomicity, two concurrent requests could both read the same token count and both get approved, violating the limit. Lua scripts execute atomically on Redis, solving this entirely.
@@ -177,7 +177,7 @@ Each algorithm originally returned different fields. The frontend relied on thes
 
 ---
 
-## 🚀 Run Locally
+##  Run Locally
 
 ### With Docker (Recommended)
 
@@ -208,7 +208,7 @@ DEFAULT_WINDOW_SECONDS=60
 
 ---
 
-## 🗂️ Project Structure
+##  Project Structure
 
 ```
 rate-limiter/
@@ -237,7 +237,7 @@ rate-limiter/
 
 ---
 
-## 🧪 Tests
+## Tests
 
 ```bash
 pytest tests/ -v
@@ -245,7 +245,7 @@ pytest tests/ -v
 
 ---
 
-## 📚 What I Learned
+## What I Learned
 
 - Redis `INCR` is atomic — safe for distributed counters without locks
 - Sorted sets (`ZSET`) are the right data structure for sliding window logs — O(log N) insert and range delete
