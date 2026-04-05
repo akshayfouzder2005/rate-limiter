@@ -2,7 +2,7 @@
 
 A production-grade rate limiting service built from scratch — implementing three core algorithms using Redis atomic operations, deployed with Docker on Render.
 
-[![Live Demo](https://img.shields.io/badge/Live%20Demo-rate--limiter--3g5i.onrender.com-00ff87?style=for-the-badge&logo=render&logoColor=white)](https://rate-limiter-3g5i.onrender.com/)
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-rate--limiter--ze9f.onrender.com-00ff87?style=for-the-badge&logo=render&logoColor=white)](https://rate-limiter-3g5i.onrender.com/)
 [![GitHub](https://img.shields.io/badge/GitHub-akshayfouzder2005-181717?style=for-the-badge&logo=github)](https://github.com/akshayfouzder2005/rate-limiter)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-009688?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
 [![Redis](https://img.shields.io/badge/Redis-7.0-DC382D?style=for-the-badge&logo=redis&logoColor=white)](https://redis.io)
@@ -12,7 +12,7 @@ A production-grade rate limiting service built from scratch — implementing thr
 
 ##  Live Demo
 
-**[https://rate-limiter-3g5i.onrender.com/](https://rate-limiter-3g5i.onrender.com/)**
+**[https://rate-limiter-ze9f.onrender.com/](https://rate-limiter-ze9f.onrender.com/)**
 
 > Switch between algorithms, fire requests, trigger a 429, and watch the countdown timer. Use **Burst ×10** to fire 10 simultaneous requests and observe how each algorithm handles the load differently.
 
